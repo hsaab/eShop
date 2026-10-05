@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 
 namespace eShop.AppHost;
@@ -14,21 +10,27 @@ internal static class Extensions
     /// </summary>
     public static IDistributedApplicationBuilder AddForwardedHeaders(this IDistributedApplicationBuilder builder)
     {
-        builder.Services.TryAddLifecycleHook<AddForwardHeadersHook>();
+        builder.Services.TryAddEventingSubscriber<AddForwardHeadersSubscriber>();
         return builder;
     }
 
-    private class AddForwardHeadersHook : IDistributedApplicationLifecycleHook
+    // Aspire 13 replaces IDistributedApplicationLifecycleHook with the eventing subscriber.
+    private class AddForwardHeadersSubscriber : IDistributedApplicationEventingSubscriber
     {
-        public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+        public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
         {
-            foreach (var p in appModel.GetProjectResources())
+            eventing.Subscribe<BeforeStartEvent>((@event, _) =>
             {
-                p.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+                foreach (var project in @event.Model.GetProjectResources())
                 {
-                    context.EnvironmentVariables["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
-                }));
-            }
+                    project.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+                    {
+                        context.EnvironmentVariables["ASPNETCORE_FORWARDEDHEADERS_ENABLED"] = "true";
+                    }));
+                }
+
+                return Task.CompletedTask;
+            });
 
             return Task.CompletedTask;
         }

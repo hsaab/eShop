@@ -25,14 +25,18 @@ if [[ ! "${sdk_version}" =~ ^10\.0\.[0-9]+ ]]; then
   exit 1
 fi
 
-dotnet restore eShop.Web.slnf
-dotnet build eShop.Web.slnf
+# Identity.API libman restore fetches jquery and bootstrap from cdnjs and unpkg.
+# Those hosts fail TLS on this agent (LIB002). The property is a recipe flag, not a product change.
+libman_flag=(-p:LibraryRestore=false)
+
+dotnet restore eShop.Web.slnf "${libman_flag[@]}"
+dotnet build eShop.Web.slnf "${libman_flag[@]}"
 
 if docker info >/dev/null 2>&1; then
-  dotnet test eShop.Web.slnf
+  dotnet test eShop.Web.slnf "${libman_flag[@]}"
 else
   set +e
-  dotnet test eShop.Web.slnf --filter "FullyQualifiedName!~FunctionalTests"
+  dotnet test eShop.Web.slnf --filter "FullyQualifiedName!~FunctionalTests" "${libman_flag[@]}"
   test_status=$?
   set -e
   printf '%s\n' "Functional tests were not run because Docker is missing."

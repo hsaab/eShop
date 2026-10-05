@@ -16,8 +16,8 @@ done: branch publix-dryrun-net10 exists off release/8.0 with net8.0 retargeted t
 - [x] design doc (lite): design-doc.md written (20:42). Approved from the task text, not a live pause: the user already required a surgical TFM plus SDK plus package bumps, said start now, and this session cannot wait. Full-vs-lite was not asked. Lite, because a 15-section doc would not change that scope.
 - [x] plan: arena merged A+B+C into one slice, 340 reviewable lines, plan.md (20:55). Judge rejected writing Aspire call sites before the compiler names them. Parent checked the slice estimate is under 500, and the plan logs a cohesion exception only if the compiler fix pushes it over.
 - [x] test-first: no new C# test. verify.sh is the recipe because a net10 string assertion would only pass by hard-coding the same edit, and dotnet is not installed so a red suite cannot run. The recipe's current failure is the missing SDK, which is the environment, not a wrong assertion (21:02)
-- [ ] implement
-  - [ ] slice 1: retarget the web solution to net10.0 (estimate 340 reviewable)
+- [x] implement
+  - [x] slice 1: retarget the web solution to net10.0 (estimate 340 reviewable, actual 290 against release/8.0). Build of eShop.Web.slnf succeeded with 0 errors and 3 ASPIRE010 warnings (20:58)
 - [ ] verify
 - [ ] deliver
 - [ ] merge
@@ -26,8 +26,8 @@ done: branch publix-dryrun-net10 exists off release/8.0 with net8.0 retargeted t
 - [x] name the data shape before writing any logic: version pins in plan.md (SDK 10.0.100, amended from 10.0.302 because this agent only has Ubuntu SDK 10.0.112, AspnetVersion and EfVersion 10.0.12, AspireVersion 13.6.0, ServiceDiscovery and Http.Resilience 10.10.0, Npgsql EF 10.0.3)
 - [x] name the user journeys this feature has to make work: restore eShop.Web.slnf, build plus unit tests without Docker, functional tests or an explicit Docker skip
 - [x] tests for those journeys land before the implementation: verify.sh committed with the ledger before product edits. Existing tests stay the behavior proof.
-- [ ] implement slice by slice, each one shippable on its own
-- [ ] no opportunistic refactors in the diff
+- [x] implement slice by slice, each one shippable on its own
+- [x] no opportunistic refactors in the diff
 - [ ] the feature works end to end on the real artifact, not just in unit tests
 
 ## Log
@@ -40,3 +40,4 @@ done: branch publix-dryrun-net10 exists off release/8.0 with net8.0 retargeted t
 - 20:42 design: do not port main. Pin SDK 10.0.302, AspnetVersion and EfVersion 10.0.12, Aspire 13.6.0, ServiceDiscovery and Http.Resilience 10.10.0, Npgsql EF 10.0.3. Code edits only where the compiler fails. Diagram is mermaid because Lucid is not connected.
 - 21:05 plan amendment: global.json pin is 10.0.100, not 10.0.302. dot.net, aka.ms, and builds.dotnet.microsoft.com fail TLS. Ubuntu noble-updates has dotnet-sdk-10.0 10.0.112 only. latestFeature from 10.0.100 accepts 10.0.112 and a newer 10.0 SDK such as main's 10.0.302. A 10.0.302 pin would not roll backward onto 10.0.112.
 - 20:28 broad explorer: 25 csproj files are all net8.0. eShop.Web.slnf drops ClientApp, HybridApp, and ClientApp.UnitTests. Versions live in Directory.Packages.props (Aspnet 8.0.7, EF 8.0.8, Aspire 8.2.0). global.json pins SDK 8.0.400 with rollForward latestFeature, so a .NET 10-only SDK will not satisfy it. CI command is `dotnet test eShop.Web.slnf` in .github/workflows/pr-validation.yml:33 after aspire workload install. Test paths recorded in the header. No Dockerfiles.
+- 20:58 implement: `dotnet build eShop.Web.slnf -p:LibraryRestore=false` succeeded, 0 errors, 3 ASPIRE010 warnings. Product diff against release/8.0 is 159 additions and 131 deletions, 290 reviewable lines, under the 500 cap, so the cohesion exception was not needed. Restore named Grpc 2.84.0, Polly.Core 8.8.0, HealthChecks.Uris 9.0.0, Yarp 2.3.0, Duende 7.0.8, OpenTelemetry 1.19.x, AutoMapper 15.1.3, Semantic Kernel 1.71.0, Swashbuckle 10.2.3, and Google.Protobuf 3.36.2. Compiler named Aspire.AppHost.Sdk/13.6.0 on the three IsAspireHost projects, RabbitMQ.Client 7 async channel APIs, OpenAPI 2 in ServiceDefaults, a local CS0618 suppression for the Semantic Kernel embedding API, the eventing subscriber in AppHost Extensions.cs, and AddDeployment(name, model, version) in Program.cs. Program.cs stayed. AppHost.cs was not added. Pgvector.EntityFrameworkCore stayed at 0.2.1. docker info failed, so functional tests are still outstanding.
