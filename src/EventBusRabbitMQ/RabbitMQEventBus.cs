@@ -37,7 +37,9 @@ public sealed class RabbitMQEventBus(
             logger.LogTrace("Creating RabbitMQ channel to publish event: {EventId} ({EventName})", @event.Id, routingKey);
         }
 
-        using var channel = (await _rabbitMQConnection?.CreateChannelAsync()) ?? throw new InvalidOperationException("RabbitMQ connection is not open");
+        var connection = _rabbitMQConnection ?? throw new InvalidOperationException("RabbitMQ connection is not open");
+
+        using var channel = await connection.CreateChannelAsync();
 
         if (logger.IsEnabled(LogLevel.Trace))
         {
@@ -54,7 +56,7 @@ public sealed class RabbitMQEventBus(
         // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/messaging/messaging-spans.md
         var activityName = $"{routingKey} publish";
 
-        await _pipeline.Execute(async () =>
+        await _pipeline.ExecuteAsync(async cancellationToken =>
         {
             using var activity = _activitySource.StartActivity(activityName, ActivityKind.Client);
 
@@ -99,7 +101,8 @@ public sealed class RabbitMQEventBus(
                     routingKey: routingKey,
                     mandatory: true,
                     basicProperties: properties,
-                    body: body);
+                    body: body,
+                    cancellationToken: cancellationToken);
             }
             catch (Exception ex)
             {
