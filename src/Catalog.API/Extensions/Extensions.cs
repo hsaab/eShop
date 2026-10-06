@@ -31,12 +31,17 @@ public static class Extensions
         if (builder.Configuration["AI:Onnx:EmbeddingModelPath"] is string modelPath &&
             builder.Configuration["AI:Onnx:EmbeddingVocabPath"] is string vocabPath)
         {
+            // Same obsolete embedding API as CatalogAI. See the comment in that file.
+#pragma warning disable CS0618
             builder.Services.AddBertOnnxTextEmbeddingGeneration(modelPath, vocabPath);
+#pragma warning restore CS0618
         }
         else if (!string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("openai")))
         {
             builder.AddAzureOpenAIClient("openai");
+#pragma warning disable CS0618
             builder.Services.AddOpenAITextEmbeddingGeneration(builder.Configuration["AIOptions:OpenAI:EmbeddingName"] ?? "text-embedding-3-small");
+#pragma warning restore CS0618
         }
 
         builder.Services.AddSingleton<ICatalogAI, CatalogAI>();
