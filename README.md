@@ -60,6 +60,17 @@ Dashboard: https://localhost:<port>/login?t=<token>
 
 Press <kbd>Ctrl</kbd>+<kbd>C</kbd> to stop the AppHost. See the [`aspire run` command](https://aspire.dev/reference/cli/commands/aspire-run/) for additional options.
 
+Or from the repo root (starts Docker if needed, then Aspire):
+
+```sh
+npm start
+```
+
+That runs [`scripts/start.sh`](scripts/start.sh), which refuses to start a second AppHost when ports `7298` or `19888` are already listening, then prints the shop and dashboard URLs:
+
+- Shop: `https://localhost:7298` (or `http://localhost:5045`)
+- Dashboard: `https://localhost:19888`
+
 To run the AppHost in the background instead:
 
 ```console
