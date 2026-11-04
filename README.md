@@ -71,7 +71,13 @@ get-WinGetConfiguration -file .\.configurations\vscode.dsc.yaml | Invoke-WinGetC
  - Ensure that `eShop.AppHost.csproj` is your startup project
  - Hit Ctrl-F5 to launch Aspire
 
-* Or run the application from your terminal:
+* Or from the repo root (starts Docker if needed, then Aspire):
+```sh
+npm start
+```
+The storefront is at `https://localhost:7298` (or `http://localhost:5045`). The Aspire dashboard URL is printed in the console.
+
+* Or run the AppHost directly:
 ```powershell
 dotnet run --project src/eShop.AppHost/eShop.AppHost.csproj
 ```
