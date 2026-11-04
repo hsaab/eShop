@@ -45,7 +45,7 @@ public sealed class RabbitMQEventBus(
         }
 
         await channel.ExchangeDeclareAsync(
-            exchange: ExchangeName,
+            exchange: ExchangeName, 
             type: "direct");
 
         var body = SerializeMessage(@event);

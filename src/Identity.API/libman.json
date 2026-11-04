@@ -8,6 +8,7 @@
     },
     {
       "library": "bootstrap@5.2.3",
+      "destination": "wwwroot/lib/bootstrap/dist/",
       "files": [
         "css/bootstrap.css",
         "css/bootstrap.css.map",
@@ -17,8 +18,7 @@
         "js/bootstrap.min.js",
         "js/bootstrap.bundle.js",
         "js/bootstrap.bundle.min.js"
-      ],
-      "destination": "wwwroot/lib/bootstrap/dist/"
+      ]
     },
     {
       "library": "jquery-validation-unobtrusive@4.0.0",

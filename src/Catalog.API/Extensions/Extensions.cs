@@ -1,10 +1,17 @@
 ﻿using eShop.Catalog.API.Services;
-using Microsoft.SemanticKernel;
 
 public static class Extensions
 {
     public static void AddApplicationServices(this IHostApplicationBuilder builder)
     {
+        // Avoid loading full database config and migrations if startup
+        // is being invoked from build-time OpenAPI generation
+        if (builder.Environment.IsBuild())
+        {
+            builder.Services.AddDbContext<CatalogContext>();
+            return;
+        }
+
         builder.AddNpgsqlDbContext<CatalogContext>("catalogdb", configureDbContextOptions: dbContextOptionsBuilder =>
         {
             dbContextOptionsBuilder.UseNpgsql(builder =>
@@ -28,22 +35,17 @@ public static class Extensions
         builder.Services.AddOptions<CatalogOptions>()
             .BindConfiguration(nameof(CatalogOptions));
 
-        if (builder.Configuration["AI:Onnx:EmbeddingModelPath"] is string modelPath &&
-            builder.Configuration["AI:Onnx:EmbeddingVocabPath"] is string vocabPath)
+        if (builder.Configuration["OllamaEnabled"] is string ollamaEnabled && bool.Parse(ollamaEnabled))
         {
-            // Same obsolete embedding API as CatalogAI. See the comment in that file.
-#pragma warning disable CS0618
-            builder.Services.AddBertOnnxTextEmbeddingGeneration(modelPath, vocabPath);
-#pragma warning restore CS0618
+            builder.AddOllamaApiClient("embedding")
+                .AddEmbeddingGenerator();
         }
-        else if (!string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("openai")))
+        else if (!string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("textEmbeddingModel")))
         {
-            builder.AddAzureOpenAIClient("openai");
-#pragma warning disable CS0618
-            builder.Services.AddOpenAITextEmbeddingGeneration(builder.Configuration["AIOptions:OpenAI:EmbeddingName"] ?? "text-embedding-3-small");
-#pragma warning restore CS0618
+            builder.AddOpenAIClientFromConfiguration("textEmbeddingModel")
+                .AddEmbeddingGenerator();
         }
 
-        builder.Services.AddSingleton<ICatalogAI, CatalogAI>();
+        builder.Services.AddScoped<ICatalogAI, CatalogAI>();
     }
 }
