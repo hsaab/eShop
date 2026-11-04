@@ -46,7 +46,15 @@ No separate Aspire workload or Visual Studio component is required; the AppHost 
 
 #### From the terminal
 
-From the repository root, run:
+From the repository root (starts Docker if needed, then Aspire):
+
+```sh
+npm start
+```
+
+The storefront is at `https://localhost:7298` (or `http://localhost:5045`). The Aspire dashboard URL is printed in the console.
+
+Or with the Aspire CLI:
 
 ```console
 aspire run
