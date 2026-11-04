@@ -1,0 +1,33 @@
+# Candidate B: eShop net8.0 to net10.0 dry run
+
+## Approach
+
+Ship the dry run as one pull request and one slice on `publix-dryrun-net10`, based on `release/8.0` at `f236952`. The version contract moves together: `global.json` SDK `10.0.302` with `rollForward` left at `latestFeature`, every `net8.0` target framework string (including MAUI suffixes and the two `ClientApp.csproj` conditions), the `Directory.Packages.props` bumps the design already named, and the inline Maui pins to `10.0.110`. The same slice then takes only the call-site and warning edits the net10 compiler reports, and it does not replace `src/eShop.AppHost/Program.cs` with `main`'s `AppHost.cs`. One PR is enough: the mechanical pin diff is small, and splitting it from the compiler fixes would leave a tree that does not build.
+
+## Why this over the obvious alternative
+
+The obvious alternative is three review slices: SDK and target frameworks, then package versions, then Aspire call sites. That split does not restore or build. `Aspire.Hosting.AppHost` 8.2.0 has no `lib/net10.0`, ServiceDiscovery and Http.Resilience cannot stay on the Aspire 13 version, and `TreatWarningsAsErrors` turns the old inbox extension pins into a failed build. A slice that does not build is not shippable. The combined edit is about 270 reviewable lines, so the over-500 exception is not needed.
+
+## Slices
+
+### 1. Retarget the web solution to net10.0
+
+- scope: `global.json`; `Directory.Packages.props`; every `*.csproj` that still says `net8.0` (25 files: the 22 in `eShop.Web.slnf`, plus `src/ClientApp/ClientApp.csproj`, `src/HybridApp/HybridApp.csproj`, and `tests/ClientApp.UnitTests/ClientApp.UnitTests.csproj`); compiler-reported edits only in `src/eShop.AppHost/Program.cs`, `tests/Catalog.FunctionalTests/CatalogApiFixture.cs`, `tests/Ordering.FunctionalTests/OrderingApiFixture.cs`, and `src/eShop.ServiceDefaults` if the build names it. Do not edit `eShop.Web.slnf`, `Directory.Build.props` (leave `TreatWarningsAsErrors` true), EF migration snapshots, README, workflows, or identity and auth behavior.
+- change: Set `sdk.version` to `10.0.302`. Set `AspnetVersion` and `EfVersion` to `10.0.12`, `AspireVersion` to `13.6.0`, and `AspireUnstablePackagesVersion` to `13.6.0-preview.1.26479.8`. Point `Microsoft.Extensions.ServiceDiscovery` and `Microsoft.Extensions.ServiceDiscovery.Yarp` (lines 26-27) and `Microsoft.Extensions.Http.Resilience` (line 42) at `10.10.0` instead of `$(AspireVersion)` or `MicrosoftExtensionsVersion`. Set `Npgsql.EntityFrameworkCore.PostgreSQL` to `10.0.3`. Set the three inbox `Microsoft.Extensions.*` pins at lines 53-55 to `10.0.12`. Leave `MicrosoftExtensionsVersion` at `8.7.0`, and leave Grpc, Duende, OpenTelemetry, Swashbuckle, Polly, MediatR, and xUnit, until restore or the compiler names them. Bump `Pgvector.EntityFrameworkCore` from `0.2.1` to `0.3.0` only if the build fails on it. In all 25 projects, replace `net8.0` target strings with `net10.0`, including platform suffixes. In `ClientApp.csproj`, change the `OutputType` condition that compares `TargetFramework` to `net8.0`, and the `Debug|net8.0-ios` property group, and the commented tizen framework string. In the three projects that set `ManagePackageVersionsCentrally` false, change inline Maui package versions from `8.0.70` or `8.0.80` to `10.0.110`. After restore, fix only methods the compiler flags. Known call: `DistributedApplication.CreateBuilder` in `CatalogApiFixture` and `OrderingApiFixture`, plus the top-level Aspire registration statements in `Program.cs`. Keep the same auth scheme and authority if `ServiceDefaults` must change. Open one PR against `release/8.0`. Do not merge. PR body DEMO NOTES: the pin table, the Aspire before-and-after, MAUI not built on this agent, `README.md:38` still saying .NET 8, and whether functional tests ran.
+- journeys: A developer on `release/8.0` who takes this branch can restore `eShop.Web.slnf` with a 10.0 SDK. The web solution builds, and unit tests in that filter pass without Docker. Functional tests pass when a container runtime is present; otherwise the PR says they were not run because Docker is missing.
+- verify: After the later phase installs the 10.0 SDK, `dotnet --version` prints a `10.0` version (`rollForward: latestFeature` accepts a patch newer than `10.0.302`). `git rev-parse release/8.0` is still `f236952`. `rg -n "net8\\.0" -g "*.csproj" -g "global.json"` finds nothing. `dotnet restore eShop.Web.slnf` and `dotnet build eShop.Web.slnf` succeed. `dotnet test eShop.Web.slnf --filter "FullyQualifiedName!~FunctionalTests"` passes without Docker. If `docker info` succeeds, `dotnet test tests/Catalog.FunctionalTests tests/Ordering.FunctionalTests` passes. If `docker info` fails, the PR states that functional tests were not run because Docker is missing, and the unit-test command is the evidence.
+- estimate: 270 reviewable lines
+
+## Risks
+
+- Aspire 13 will not compile the Aspire 8 call sites unchanged. Early warning: the first build of `eShop.AppHost` or either functional fixture fails on a missing builder method.
+- `TreatWarningsAsErrors` promotes new net10 warnings to errors. Early warning: restore succeeds and the build then fails on a warning in a project that already resolved packages.
+- `Pgvector.EntityFrameworkCore` 0.2.1 may not compile against EF 10. Early warning: a type error in a Pgvector call site. Bump that one package to `0.3.0` in this same slice.
+- Npgsql 10.0.3 may not be source-compatible with 8.0.4. Early warning: compile errors in the Postgres DbContext projects after restore has already succeeded.
+- Functional tests start Postgres through `DistributedApplication.CreateBuilder`. Early warning: `docker info` fails. Say they were not run. Do not treat the unit-test run as a green full suite.
+- Maui `10.0.110` is not compiled here. Early warning: `dotnet restore eShop.Web.slnf` tries to load `ClientApp` or `HybridApp`, which the filter excludes. A later Windows build can still fail for a reason this agent never saw.
+- The 10.0 SDK is not installed yet. Early warning: `dotnet` is missing or `dotnet --version` is not `10.0.x`. Verify waits on that later phase.
+
+## Least sure about
+
+Keeping the Aspire call-site edits in this same slice, on a 270 line estimate, before the build has been run. I would change my mind if `dotnet build eShop.Web.slnf` is already clean after the pin and target-framework edits, in which case the slice should stop at the version files and drop the allowance for `Program.cs` and the fixtures, or if that build needs more than about 200 reviewable lines of product edits, in which case I would still not split off a non-building pin commit and would mark `exception: the pins and the call sites are one build`.

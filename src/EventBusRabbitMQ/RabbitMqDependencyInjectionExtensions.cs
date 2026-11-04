@@ -18,6 +18,8 @@ public static class RabbitMqDependencyInjectionExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        // RabbitMQ.Client 7 dispatches consumers asynchronously by default.
+        // DispatchConsumersAsync was removed from ConnectionFactory.
         builder.AddRabbitMQClient(connectionName);
 
         // RabbitMQ.Client doesn't have built-in support for OpenTelemetry, so we need to add it ourselves

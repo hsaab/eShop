@@ -60,6 +60,14 @@ Dashboard: https://localhost:<port>/login?t=<token>
 
 Press <kbd>Ctrl</kbd>+<kbd>C</kbd> to stop the AppHost. See the [`aspire run` command](https://aspire.dev/reference/cli/commands/aspire-run/) for additional options.
 
+Or from the repo root (starts Docker if needed, then Aspire):
+
+```sh
+npm start
+```
+
+The storefront is at `https://localhost:7298` (or `http://localhost:5045`). The Aspire dashboard URL is printed in the console.
+
 To run the AppHost in the background instead:
 
 ```console

@@ -6,6 +6,7 @@
     "test": "tests"
   },
   "scripts": {
+    "start": "bash scripts/start.sh",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report"
