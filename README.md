@@ -80,6 +80,15 @@ then look for lines like this in the console output in order to find the URL to 
 Login to the dashboard at: http://localhost:19888/login?t=uniquelogincodeforyou
 ```
 
+* Or from the repo root (starts Docker if needed, then Aspire):
+```sh
+npm start
+```
+That runs [`scripts/start.sh`](scripts/start.sh), which refuses to start a second AppHost when ports `7298` or `19888` are already listening, then prints the shop and dashboard URLs:
+
+- Shop: `https://localhost:7298` (or `http://localhost:5045`)
+- Dashboard: `https://localhost:19888`
+
 > You may need to install ASP.NET Core HTTPS development certificates first, and then close all browser tabs. Learn more at https://aka.ms/aspnet/https-trust-dev-cert
 
 ### Azure Open AI

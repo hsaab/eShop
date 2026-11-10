@@ -5,7 +5,9 @@
   "directories": {
     "test": "tests"
   },
-  "scripts": {},
+  "scripts": {
+    "start": "bash scripts/start.sh"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
