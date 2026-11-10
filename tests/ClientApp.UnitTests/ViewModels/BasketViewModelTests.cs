@@ -8,7 +8,7 @@ namespace ClientApp.UnitTests.ViewModels;
 public class BasketViewModelTests
 {
     private readonly IAppEnvironmentService _appEnvironmentService;
-    private readonly INavigationService _navigationService;
+    private readonly MockNavigationService _navigationService;
     private readonly ISettingsService _settingsService;
 
     public BasketViewModelTests()
@@ -88,7 +88,6 @@ public class BasketViewModelTests
     [TestMethod]
     public async Task CheckoutCommandPreparesLocalBasketItemsTest()
     {
-        // MockNavigationService does not record routes; assert checkout readiness instead.
         var basketViewModel = CreateViewModel();
         var item = new BasketItem
         {
@@ -109,5 +108,6 @@ public class BasketViewModelTests
         Assert.IsNotNull(localItems);
         Assert.HasCount(1, localItems);
         Assert.AreEqual(item.ProductId, localItems[0].ProductId);
+        Assert.AreEqual("Checkout", _navigationService.LastRoute);
     }
 }

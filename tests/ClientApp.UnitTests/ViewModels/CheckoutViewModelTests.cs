@@ -8,9 +8,9 @@ namespace ClientApp.UnitTests.ViewModels;
 public class CheckoutViewModelTests
 {
     private readonly IAppEnvironmentService _appEnvironmentService;
-    private readonly IDialogService _dialogService;
+    private readonly MockDialogService _dialogService;
     private readonly IdentityMockService _identityService;
-    private readonly INavigationService _navigationService;
+    private readonly MockNavigationService _navigationService;
     private readonly ISettingsService _settingsService;
 
     public CheckoutViewModelTests()
@@ -85,8 +85,6 @@ public class CheckoutViewModelTests
     [TestMethod]
     public async Task CheckoutCommandPlacesOrderAndClearsBasketTest()
     {
-        // MockDialogService / MockNavigationService do not record calls;
-        // assert the observable post-checkout state the ViewModel does produce.
         await _identityService.SignInAsync();
 
         var basketViewModel = CreateBasketViewModel();
@@ -107,5 +105,9 @@ public class CheckoutViewModelTests
 
         var basket = await _appEnvironmentService.BasketService.GetBasketAsync();
         Assert.IsEmpty(basket.Items);
+
+        Assert.AreEqual("//Main/Catalog", _navigationService.LastRoute);
+        Assert.AreEqual("Order sent successfully!", _dialogService.LastMessage);
+        Assert.AreEqual("Checkout", _dialogService.LastTitle);
     }
 }
