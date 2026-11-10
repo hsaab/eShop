@@ -69,6 +69,15 @@ aspire ps
 
 When you are finished, run `aspire stop`. See the [`aspire start` command](https://aspire.dev/reference/cli/commands/aspire-start/) for details.
 
+Or start from the repository root with npm. This runs [`scripts/start.sh`](scripts/start.sh), which refuses to start a second AppHost when ports `7298` or `19888` are already listening, starts Docker Desktop on macOS when it is installed but not running, then launches the AppHost:
+
+```sh
+npm start
+```
+
+- Shop: `https://localhost:7298` (or `http://localhost:5045`)
+- Dashboard: `https://localhost:19888`
+
 #### From Visual Studio
 
 1. Open `eShop.Web.slnf`.
