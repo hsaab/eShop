@@ -5,7 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace eShop.ServiceDefaults;
@@ -141,7 +141,7 @@ internal sealed class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOpti
         // }
 
         var identityUrlExternal = identitySection.GetRequiredValue("Url");
-        var scopes = identitySection.GetRequiredSection("Scopes").GetChildren().ToDictionary(p => p.Key, p => p.Value);
+        var scopes = identitySection.GetRequiredSection("Scopes").GetChildren().ToDictionary(p => p.Key, p => p.Value ?? string.Empty);
 
         options.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
         {
@@ -172,19 +172,18 @@ internal sealed class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOpti
                 return;
             }
 
+            operation.Responses ??= new OpenApiResponses();
             operation.Responses.TryAdd("401", new OpenApiResponse { Description = "Unauthorized" });
             operation.Responses.TryAdd("403", new OpenApiResponse { Description = "Forbidden" });
 
-            var oAuthScheme = new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "oauth2" }
-            };
+            // OpenAPI 2 replaced OpenApiReference on the scheme with a reference object.
+            var oAuthScheme = new OpenApiSecuritySchemeReference("oauth2");
 
             operation.Security = new List<OpenApiSecurityRequirement>
             {
                 new()
                 {
-                    [ oAuthScheme ] = scopes
+                    [oAuthScheme] = scopes.ToList()
                 }
             };
         }

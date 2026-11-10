@@ -2,6 +2,10 @@
 using Microsoft.SemanticKernel.Embeddings;
 using Pgvector;
 
+// Semantic Kernel 1.71, the first build that patches GHSA-2ww3-72rp-wpp4, marks this embedding API obsolete.
+// The replacement is a different generator type. Keep the existing calls so catalog search behavior stays the same.
+#pragma warning disable CS0618
+
 namespace eShop.Catalog.API.Services;
 
 public sealed class CatalogAI : ICatalogAI
@@ -74,3 +78,4 @@ public sealed class CatalogAI : ICatalogAI
 
     private static string CatalogItemToString(CatalogItem item) => $"{item.Name} {item.Description}";
 }
+#pragma warning restore CS0618

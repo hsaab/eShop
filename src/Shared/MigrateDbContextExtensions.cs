@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Npgsql;
 
 namespace Microsoft.AspNetCore.Hosting;
 
@@ -62,7 +63,7 @@ internal static class MigrateDbContextExtensions
 
         try
         {
-            await context.Database.MigrateAsync();
+            await MigrateDatabaseAsync(context);
             await seeder(context, services);
         }
         catch (Exception ex)
@@ -70,6 +71,28 @@ internal static class MigrateDbContextExtensions
             activity.SetExceptionTags(ex);
 
             throw;
+        }
+    }
+
+    // Aspire's Postgres resource and MigrateAsync both issue CREATE DATABASE.
+    // Npgsql swallows unique_violation (23505) on pg_database_datname_index, but
+    // current server images raise duplicate_database (42P04) for that same race.
+    // ExistsAsync also treats a startup connection reset as "database missing".
+    private static async Task MigrateDatabaseAsync(DbContext context)
+    {
+        const int maxAttempts = 5;
+
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await context.Database.MigrateAsync();
+                return;
+            }
+            catch (PostgresException ex) when (ex.SqlState == "42P04" && attempt < maxAttempts)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(200 * attempt));
+            }
         }
     }
 
