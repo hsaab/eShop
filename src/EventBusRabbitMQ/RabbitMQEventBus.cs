@@ -15,7 +15,7 @@ public sealed class RabbitMQEventBus(
     IServiceProvider serviceProvider,
     IOptions<EventBusOptions> options,
     IOptions<EventBusSubscriptionInfo> subscriptionOptions,
-    RabbitMQTelemetry rabbitMQTelemetry) : IEventBus, IDisposable, IHostedService
+    RabbitMQTelemetry rabbitMQTelemetry) : IEventBus, IDisposable, IAsyncDisposable, IHostedService
 {
     private const string ExchangeName = "eshop_event_bus";
 
@@ -126,7 +126,33 @@ public sealed class RabbitMQEventBus(
 
     public void Dispose()
     {
-        _consumerChannel?.Dispose();
+        // The consumer channel is async-only. StopAsync and DisposeAsync close it.
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await DisposeConsumerChannelAsync();
+    }
+
+    private async Task DisposeConsumerChannelAsync()
+    {
+        var channel = Interlocked.Exchange(ref _consumerChannel, null);
+        if (channel is null)
+        {
+            return;
+        }
+
+        try
+        {
+            // Reply code 200 is the normal AMQP close. A failure here must not skip dispose.
+            await channel.CloseAsync(200, "Goodbye", false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Error closing RabbitMQ consumer channel");
+        }
+
+        await channel.DisposeAsync();
     }
 
     private async Task OnMessageReceived(object sender, BasicDeliverEventArgs eventArgs)
@@ -296,7 +322,7 @@ public sealed class RabbitMQEventBus(
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        return Task.CompletedTask;
+        return DisposeConsumerChannelAsync();
     }
 
     private static ResiliencePipeline CreateResiliencePipeline(int retryCount)

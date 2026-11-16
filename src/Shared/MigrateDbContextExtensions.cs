@@ -41,9 +41,18 @@ internal static class MigrateDbContextExtensions
         {
             logger.LogInformation("Migrating database associated with context {DbContextName}", typeof(TContext).Name);
 
-            var strategy = context.Database.CreateExecutionStrategy();
-
-            await strategy.ExecuteAsync(() => InvokeSeeder(seeder, context, scopeServices));
+            try
+            {
+                await MigrateWithStrategy(context, seeder, scopeServices);
+            }
+            catch (Exception ex) when (IsDatabaseAlreadyExists(ex))
+            {
+                // Aspire creates the database while MigrateAsync also issues CREATE DATABASE.
+                // Npgsql surfaces 42P04 instead of treating that race as success.
+                logger.LogWarning(ex, "Database already exists while migrating {DbContextName}; retrying.", typeof(TContext).Name);
+                context.Database.CloseConnection();
+                await MigrateWithStrategy(context, seeder, scopeServices);
+            }
         }
         catch (Exception ex)
         {
@@ -53,6 +62,26 @@ internal static class MigrateDbContextExtensions
 
             throw;
         }
+    }
+
+    private static Task MigrateWithStrategy<TContext>(TContext context, Func<TContext, IServiceProvider, Task> seeder, IServiceProvider services)
+        where TContext : DbContext
+    {
+        var strategy = context.Database.CreateExecutionStrategy();
+        return strategy.ExecuteAsync(() => InvokeSeeder(seeder, context, services));
+    }
+
+    private static bool IsDatabaseAlreadyExists(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is Npgsql.PostgresException postgres && postgres.SqlState == Npgsql.PostgresErrorCodes.DuplicateDatabase)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static async Task InvokeSeeder<TContext>(Func<TContext, IServiceProvider, Task> seeder, TContext context, IServiceProvider services)
