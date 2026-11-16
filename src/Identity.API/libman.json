@@ -8,12 +8,14 @@
     },
     {
       "library": "bootstrap@5.2.3",
-      "destination": "wwwroot/lib/bootstrap/",
+      "destination": "wwwroot/lib/bootstrap/dist/",
       "files": [
         "css/bootstrap.css",
         "css/bootstrap.css.map",
         "css/bootstrap.min.css",
         "css/bootstrap.min.css.map",
+        "js/bootstrap.js",
+        "js/bootstrap.min.js",
         "js/bootstrap.bundle.js",
         "js/bootstrap.bundle.min.js"
       ]
